@@ -2,8 +2,11 @@ name: Generate GitHub Metrics
 
 on:
   schedule:
-    - cron: "0 */12 * * *"   # alle 12h
+    - cron: "0 */12 * * *"
   workflow_dispatch: {}
+
+permissions:
+  contents: write    # wichtig für den Commit
 
 jobs:
   build:
@@ -12,29 +15,24 @@ jobs:
       - name: Generate metrics SVG
         uses: lowlighter/metrics@latest
         with:
-          # 1) Secret setzen: Settings → Secrets → Actions → New secret
-          #    Name: METRICS_TOKEN  (klassischer PAT)
+          # API-Token für Datenabfragen
           token: ${{ secrets.METRICS_TOKEN }}
 
-          # 2) Basis-Konfiguration
+          # Datei und Commit-Ziel
+          filename: metrics/github-metrics.svg
+          output_action: commit
+          committer_branch: main
+          committer_message: "chore(metrics): update github-metrics.svg"
+          committer_token: ${{ secrets.METRICS_TOKEN }}  # nutzt Repo-Token mit Schreibrechten
+
+          # Profil
           user: Noel-Schmidt
           template: classic
-          filename: github-metrics.svg
           base: header, repositories, metadata
           config_timezone: Europe/Berlin
-          config_twemoji: yes
           config_animations: yes
-          config_output: svg
 
-          # 3) Dark/Black Look
-          config_display: large
-          config_padding: 0, 12
-          plugin_pagespeed: no
-          extras_css: |
-            :root{ --background: #000000; --header-bg: #000000; }
-            .items-wrapper{ background:#000000!important; }
-
-          # 4) Plugins (schlank, nützlich)
+          # Plugins (schlank, stabil)
           plugin_isocalendar: yes
           plugin_isocalendar_duration: half-year
           plugin_languages: yes
