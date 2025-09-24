@@ -1,0 +1,45 @@
+name: Generate GitHub Metrics
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"   # alle 12h
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate metrics SVG
+        uses: lowlighter/metrics@latest
+        with:
+          # 1) Secret setzen: Settings → Secrets → Actions → New secret
+          #    Name: METRICS_TOKEN  (klassischer PAT)
+          token: ${{ secrets.METRICS_TOKEN }}
+
+          # 2) Basis-Konfiguration
+          user: Noel-Schmidt
+          template: classic
+          filename: github-metrics.svg
+          base: header, repositories, metadata
+          config_timezone: Europe/Berlin
+          config_twemoji: yes
+          config_animations: yes
+          config_output: svg
+
+          # 3) Dark/Black Look
+          config_display: large
+          config_padding: 0, 12
+          plugin_pagespeed: no
+          extras_css: |
+            :root{ --background: #000000; --header-bg: #000000; }
+            .items-wrapper{ background:#000000!important; }
+
+          # 4) Plugins (schlank, nützlich)
+          plugin_isocalendar: yes
+          plugin_isocalendar_duration: half-year
+          plugin_languages: yes
+          plugin_languages_ignored: html, css
+          plugin_languages_details: percentage
+          plugin_languages_threshold: 2%
+          plugin_lines: yes
+          plugin_traffic: yes
