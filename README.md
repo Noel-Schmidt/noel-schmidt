@@ -34,7 +34,7 @@ I'm **Noel**, a frontend developer in progress, learning fast by building real p
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/Noel-Schmidt/Noel-Schmidt/main/github-metrics.svg" alt="GitHub Metrics" width="75%">
+<img src="https://raw.githubusercontent.com/Noel-Schmidt/Noel-Schmidt/main/metrics/github-metrics.svg" alt="GitHub Metrics" width="75%">
 
 </div>
 
