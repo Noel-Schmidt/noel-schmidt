@@ -8,7 +8,7 @@ I'm **Noel**, a frontend developer in progress, learning fast by building real p
 ## 🚀 Things I work with
 
 ![Vue](https://img.shields.io/badge/vue.js-000000?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D)
-![Nuxt](https://img.shields.io/badge/nuxt.js-000000?style=for-the-badge&logo=nuxt.js&logoColor=00DC82)
+![Nuxt](https://img.shields.io/badge/nuxt.js-000000?style=for-the-badge&logo=nuxt&logoColor=00DC82)
 ![TypeScript](https://img.shields.io/badge/typescript-000000?style=for-the-badge&logo=typescript&logoColor=3178C6)
 ![TailwindCSS](https://img.shields.io/badge/tailwindcss-000000?style=for-the-badge&logo=tailwindcss&logoColor=06B6D4)
 ![Vite](https://img.shields.io/badge/vite-000000?style=for-the-badge&logo=vite&logoColor=646CFF)
