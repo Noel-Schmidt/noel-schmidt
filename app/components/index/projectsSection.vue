@@ -3,6 +3,43 @@ import { gsap } from 'gsap'
 import { ArrowRight } from 'lucide-vue-next'
 import { ref, onMounted } from 'vue'
 
+type Project = {
+  title: string
+  description: string
+  imageSrc: string
+  imageAlt: string
+  link?: string
+  cta?: string
+}
+
+const projects: Project[] = [
+  {
+    title: 'Snappo Toolbox',
+    description:
+      'A developer toolbox combining everyday utilities into one interface — from bcrypt and key generators to color palettes and SEO helpers.',
+    imageSrc: '/images/snappo.png',
+    imageAlt: 'Snappo Toolbox',
+    link: 'https://github.com/noel-schmidt/snappo',
+    cta: 'View on GitHub',
+  },
+  {
+    title: 'Daturo.io',
+    description:
+      'Transparent company data for better business decisions. Helping organizations access clear, structured, and reliable insights.',
+    imageSrc: '/images/daturo.png',
+    imageAlt: 'Daturo.io',
+    link: 'https://daturo.io',
+    cta: 'View Project',
+  },
+  {
+    title: 'TubeLive',
+    description:
+      'A youth-led online radio project that hosted live shows and interviews with well-known artists. I was responsible for the complete programming and IT infrastructure.',
+    imageSrc: '/images/tubelive.webp',
+    imageAlt: 'Tubelive..de',
+  },
+]
+
 const root = ref<HTMLElement | null>(null)
 
 onMounted(() => {
@@ -38,20 +75,19 @@ onMounted(() => {
           WORK
         </h2>
         <p class="mx-auto mt-6 max-w-2xl text-base text-neutral-400 md:text-lg">
-          A selection of projects that highlight problem-solving, design clarity, and performance.
-          Each project was built with intent — combining modern tools, thoughtful interfaces, and a
-          focus on usability.
+          A selection of projects I had the chance to contribute to – with focus on clarity,
+          performance, and user experience.
         </p>
       </header>
 
       <div class="space-y-48">
-        <div class="reveal group relative">
+        <div v-for="p in projects" :key="p.title" class="reveal group relative">
           <div
             class="frame relative overflow-hidden rounded-3xl bg-neutral-900/40 ring-1 ring-neutral-800"
           >
             <img
-              src="/images/snappo.png"
-              alt="Snappo Toolbox"
+              :src="p.imageSrc"
+              :alt="p.imageAlt"
               class="h-[60vh] w-full object-cover transition-transform duration-[1500ms] group-hover:scale-105"
             />
             <div
@@ -62,50 +98,17 @@ onMounted(() => {
           <div
             class="absolute inset-0 flex flex-col items-center justify-end px-6 pb-16 text-center"
           >
-            <h3 class="text-4xl font-bold md:text-6xl">Snappo Toolbox</h3>
+            <h3 class="text-4xl font-bold md:text-6xl">{{ p.title }}</h3>
             <p class="mt-4 max-w-xl text-lg text-neutral-200">
-              A developer toolbox combining everyday utilities into one interface — from bcrypt and
-              key generators to color palettes and SEO helpers.
+              {{ p.description }}
             </p>
             <NuxtLink
-              to="https://github.com/noel-schmidt/snappo"
+              v-if="p.cta"
+              :to="p.link"
               target="_blank"
               class="group/link mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-medium text-black transition hover:bg-neutral-200"
             >
-              <span>View on GitHub</span>
-              <ArrowRight class="h-4 w-4 transition-transform group-hover/link:translate-x-1" />
-            </NuxtLink>
-          </div>
-        </div>
-
-        <div class="reveal group relative">
-          <div
-            class="frame relative overflow-hidden rounded-3xl bg-neutral-900/40 ring-1 ring-neutral-800"
-          >
-            <img
-              src="/images/daturo.png"
-              alt="Daturo.io"
-              class="h-[60vh] w-full object-cover transition-transform duration-[1500ms] group-hover:scale-105"
-            />
-            <div
-              class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
-            ></div>
-          </div>
-
-          <div
-            class="absolute inset-0 flex flex-col items-center justify-end px-6 pb-16 text-center"
-          >
-            <h3 class="text-4xl font-bold md:text-6xl">Daturo.io</h3>
-            <p class="mt-4 max-w-xl text-lg text-neutral-200">
-              Transparent company data for better business decisions. Helping organizations access
-              clear, structured, and reliable insights.
-            </p>
-            <NuxtLink
-              to="https://daturo.io"
-              target="_blank"
-              class="group/link mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-medium text-black transition hover:bg-neutral-200"
-            >
-              <span>Visit Project</span>
+              <span>{{ p.cta }}</span>
               <ArrowRight class="h-4 w-4 transition-transform group-hover/link:translate-x-1" />
             </NuxtLink>
           </div>
