@@ -24,6 +24,7 @@ I'm **Noel**, a frontend developer in progress, learning fast by building real p
 
 | Project | Description | Link | Stats |
 |---------|-------------|------|-------|
+| **Stacksights** | Open-source stack insights | [snappo.me](https://stacksights.dev) | ![stars](https://img.shields.io/github/stars/Noel-Schmidt/stacksights?style=for-the-badge&logo=github&label=Stars&color=000000) ![forks](https://img.shields.io/github/forks/Noel-Schmidt/stacksights?style=for-the-badge&logo=github&label=Forks&color=000000) |
 | **Snappo** | Open-source developer toolbox | [snappo.me](https://snappo.me) | ![stars](https://img.shields.io/github/stars/Noel-Schmidt/snappo?style=for-the-badge&logo=github&label=Stars&color=000000) ![forks](https://img.shields.io/github/forks/Noel-Schmidt/snappo?style=for-the-badge&logo=github&label=Forks&color=000000) |
 | **Daturo** | Company data search (closed source) | [daturo.io](https://daturo.io) | – |
 | **Portfolio** | Personal site and UI playground | [noel-schmidt.de](https://noel-schmidt.de) | – |
