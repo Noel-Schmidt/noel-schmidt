@@ -30,6 +30,7 @@ Thumbs.db
 .vscode/
 *.swp
 .turbo/
-
+.nuxt
+.output
 # Docker
 infra/db_data/

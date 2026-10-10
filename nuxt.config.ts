@@ -2,14 +2,13 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   css: ['~/assets/css/tailwind.css'],
 
   app: {
     head: {
       htmlAttrs: {
         lang: 'en',
-        class: 'dark',
       },
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon.png' },
@@ -19,14 +18,17 @@ export default defineNuxtConfig({
     },
   },
 
+  components: {
+    dirs: [
+      { path: '~/components/global', global: true, extensions: ['vue'] },
+      { path: '~/components', extensions: ['vue'] },
+    ],
+  },
+
   vite: {
+    optimizeDeps: {
+      include: ['lucide-vue-next'],
+    },
     plugins: [tailwindcss()],
   },
-
-  shadcn: {
-    prefix: '',
-    componentDir: './app/components/ui',
-  },
-
-  modules: ['shadcn-nuxt', '@tresjs/nuxt'],
 })
