@@ -12,8 +12,8 @@ const tileSize = 34
 const tiles = ref<number[]>([])
 const tileColumns = ref(1)
 const paintedTiles = ref(new Set<number>())
-const secretTiles = ref(new Set<number>())
-const showSecretStamp = ref(false)
+const selectedPreset = ref<string | null>(null)
+const presetsOpen = ref(false)
 const clickEffects = ref<{ id: number; x: number; y: number }[]>([])
 const cursor = ref({
   x: 0,
@@ -26,11 +26,97 @@ const cursor = ref({
 let hasFinePointer = false
 let nextClickEffectId = 0
 const clickEffectTimers = new Map<number, number>()
-let secretStampTimer: number | undefined
+
+const tilePresets = [
+  {
+    id: 'heart',
+    label: 'Heart',
+    rows: [
+      '011001100',
+      '111111111',
+      '111111111',
+      '011111110',
+      '001111100',
+      '000111000',
+      '000010000',
+    ],
+    preview: ['01010', '11111', '11111', '01110', '00100'],
+  },
+  {
+    id: 'ghost',
+    label: 'Ghost',
+    rows: [
+      '001111100',
+      '011111110',
+      '111111111',
+      '110110111',
+      '111111111',
+      '111111111',
+      '101010101',
+    ],
+    preview: ['01110', '11111', '10101', '11111', '10101'],
+  },
+  {
+    id: 'smiley',
+    label: 'Smiley',
+    rows: [
+      '001111100',
+      '010000010',
+      '101001001',
+      '100000001',
+      '100101001',
+      '100000001',
+      '010111010',
+      '001111100',
+    ],
+    preview: ['01110', '10001', '10101', '10001', '01110'],
+  },
+]
+
+function getPresetTilesAt(presetId: string, tile: number, columns: number, rows: number) {
+  const preset = tilePresets.find((item) => item.id === presetId)
+  if (!preset) return new Set<number>()
+
+  const patternWidth = preset.rows[0]?.length ?? 0
+  const centerX = tile % columns
+  const centerY = Math.floor(tile / columns)
+  const offsetX = centerX - Math.floor(patternWidth / 2)
+  const offsetY = centerY - Math.floor(preset.rows.length / 2)
+  const painted = new Set<number>()
+
+  preset.rows.forEach((row, rowIndex) => {
+    for (let column = 0; column < row.length; column += 1) {
+      if (row[column] !== '1') continue
+
+      const x = offsetX + column
+      const y = offsetY + rowIndex
+      if (x >= 0 && x < columns && y >= 0 && y < rows) painted.add(y * columns + x)
+    }
+  })
+
+  return painted
+}
+
+function isPreviewTilePainted(presetId: string, tile: number) {
+  const preset = tilePresets.find((item) => item.id === presetId)
+  const row = Math.floor(tile / 5)
+  const column = tile % 5
+  return preset?.preview[row]?.[column] === '1'
+}
 
 function resizeTiles() {
   const columns = Math.max(1, Math.ceil(window.innerWidth / (tileSize + 1)))
   const rows = Math.max(1, Math.ceil(window.innerHeight / (tileSize + 1)))
+  const previousColumns = tileColumns.value
+  if (tiles.value.length && columns !== previousColumns) {
+    paintedTiles.value = new Set(
+      [...paintedTiles.value].map((index) => {
+        const row = Math.floor(index / previousColumns)
+        const column = index % previousColumns
+        return row * columns + column
+      })
+    )
+  }
   tileColumns.value = columns
   tiles.value = Array.from({ length: columns * rows }, (_, index) => index)
 }
@@ -60,7 +146,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointerleave', hideCursor)
   clickEffectTimers.forEach((timer) => window.clearTimeout(timer))
   clickEffectTimers.clear()
-  if (secretStampTimer) window.clearTimeout(secretStampTimer)
   document.documentElement.classList.remove('has-custom-cursor')
 })
 
@@ -80,12 +165,29 @@ function createClickEffect(event: PointerEvent) {
 
 function handleUiClick(event: MouseEvent) {
   const target = event.target instanceof Element ? event.target : null
+  if (!target?.closest('.preset-control')) presetsOpen.value = false
   if (!target?.closest('.background-tile, a, button, [role="button"]')) return
   if (!target.closest('.arcade-cabinet')) playUiClick()
 }
 
+function applyPreset(presetId: string) {
+  selectedPreset.value = selectedPreset.value === presetId ? null : presetId
+  presetsOpen.value = false
+}
+
+function clearPaint() {
+  selectedPreset.value = null
+  paintedTiles.value = new Set()
+  presetsOpen.value = false
+}
+
 function toggleSound() {
   soundsEnabled.value = !soundsEnabled.value
+}
+
+function togglePresets() {
+  presetsOpen.value = !presetsOpen.value
+  playUiClick()
 }
 
 function openContact() {
@@ -119,27 +221,20 @@ function hideCursor() {
 
 function paintTile(tile: number) {
   const nextPaintedTiles = new Set(paintedTiles.value)
-  nextPaintedTiles.add(tile)
-  paintedTiles.value = nextPaintedTiles
-
-  if (secretTiles.value.size) return
-
-  const columns = tileColumns.value
-  const rows = Math.floor(tiles.value.length / columns)
-  for (let row = 1; row < rows - 1; row += 1) {
-    for (let column = 1; column < columns - 1; column += 1) {
-      const center = row * columns + column
-      const cross = [center, center - columns, center + columns, center - 1, center + 1]
-      if (cross.every((index) => nextPaintedTiles.has(index))) {
-        secretTiles.value = new Set(cross)
-        showSecretStamp.value = true
-        secretStampTimer = window.setTimeout(() => {
-          showSecretStamp.value = false
-        }, 2400)
-        return
-      }
+  if (selectedPreset.value) {
+    const rows = Math.ceil(window.innerHeight / (tileSize + 1))
+    for (const presetTile of getPresetTilesAt(
+      selectedPreset.value,
+      tile,
+      tileColumns.value,
+      rows
+    )) {
+      nextPaintedTiles.add(presetTile)
     }
+  } else {
+    nextPaintedTiles.add(tile)
   }
+  paintedTiles.value = nextPaintedTiles
 }
 
 function paintWhileDragging(tile: number, event: PointerEvent) {
@@ -201,23 +296,68 @@ function paintWhileDragging(tile: number, event: PointerEvent) {
     </div>
   </Teleport>
 
-  <Transition name="secret-stamp">
-    <div v-if="showSecretStamp" class="secret-stamp" role="status" aria-live="polite">
-      <span class="secret-stamp-mark" aria-hidden="true">+</span>
-      <span>Nice pattern.</span>
-    </div>
-  </Transition>
-
   <div class="card-stage" @contextmenu.prevent>
     <div class="tile-field" :style="{ '--tile-columns': tileColumns }" aria-hidden="true">
       <span
         v-for="tile in tiles"
         :key="tile"
         class="background-tile"
-        :class="{ 'is-painted': paintedTiles.has(tile), 'is-secret': secretTiles.has(tile) }"
+        :class="{ 'is-painted': paintedTiles.has(tile) }"
         @pointerdown.prevent="paintTile(tile)"
         @pointerenter="paintWhileDragging(tile, $event)"
       ></span>
+    </div>
+
+    <div class="preset-control" @keydown.esc.stop.prevent="presetsOpen = false">
+      <button
+        type="button"
+        class="preset-toggle"
+        :aria-label="presetsOpen ? 'Close tile presets' : 'Choose a tile preset'"
+        aria-controls="tile-presets"
+        :aria-expanded="presetsOpen"
+        @click.stop="togglePresets"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m14.5 6.5 3 3" />
+          <path d="m3 21 3.2-.8L19.7 6.7a2.12 2.12 0 0 0-3-3L3.2 17.2 3 21Z" />
+          <path d="M8 16 5 13" />
+          <path d="M3 21c2.5 0 4-1 4-3" />
+        </svg>
+      </button>
+
+      <Transition name="presets-pop">
+        <div v-if="presetsOpen" id="tile-presets" class="preset-popover">
+          <h2 class="preset-heading">Tile patterns</h2>
+          <div class="preset-options" role="group" aria-label="Choose a tile pattern">
+            <button
+              v-for="preset in tilePresets"
+              :key="preset.id"
+              type="button"
+              class="preset-option"
+              :aria-pressed="selectedPreset === preset.id"
+              @click="applyPreset(preset.id)"
+            >
+              <span class="preset-preview" aria-hidden="true">
+                <span
+                  v-for="previewTile in 25"
+                  :key="previewTile"
+                  :class="{ 'is-marked': isPreviewTilePainted(preset.id, previewTile - 1) }"
+                />
+              </span>
+              <span>{{ preset.label }}</span>
+            </button>
+          </div>
+          <button type="button" class="preset-clear" @click="clearPaint">Clear canvas</button>
+        </div>
+      </Transition>
     </div>
 
     <button
@@ -242,6 +382,7 @@ function paintWhileDragging(tile: number, event: PointerEvent) {
           <NuxtLink to="/" exact-active-class="is-active">Intro</NuxtLink>
           <NuxtLink to="/about" exact-active-class="is-active">About</NuxtLink>
           <NuxtLink to="/work" exact-active-class="is-active">Work</NuxtLink>
+          <NuxtLink to="/tools" exact-active-class="is-active">Tools</NuxtLink>
           <button
             type="button"
             class="contact-trigger"
@@ -302,6 +443,7 @@ body,
   color: var(--ink);
   -webkit-user-select: none;
   user-select: none;
+  perspective: 1200px;
 }
 
 .custom-cursor {
@@ -325,12 +467,152 @@ body,
   transform: translate(-3px, -3px) scale(0.88);
 }
 
+.preset-control {
+  position: relative;
+  z-index: 4;
+  grid-row: 1;
+  grid-column: 1;
+  justify-self: start;
+  animation: control-arrive 520ms 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.preset-toggle {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.preset-toggle:hover,
+.preset-toggle[aria-expanded='true'] {
+  transform: translate(-1px, -1px);
+  background: var(--orange);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.preset-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.preset-toggle:focus-visible,
+.preset-option:focus-visible,
+.preset-clear:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}
+
+.preset-popover {
+  position: absolute;
+  top: calc(100% + 0.65rem);
+  left: 0;
+  width: min(15rem, calc(100vw - 2rem));
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  padding: 0.7rem;
+  box-shadow: 4px 4px 0 #17171435;
+}
+
+.preset-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.preset-options {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.preset-option {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.25rem 0.4rem;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.preset-option:hover,
+.preset-option[aria-pressed='true'] {
+  border-color: #17171445;
+  background: #ff5a3525;
+}
+
+.preset-preview {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+}
+
+.preset-preview > span {
+  background: var(--paper-shadow);
+}
+
+.preset-preview > span.is-marked {
+  background: var(--orange);
+}
+
+.preset-clear {
+  min-height: 40px;
+  margin-top: 0.45rem;
+  border: 0;
+  border-top: 1px solid #17171435;
+  background: transparent;
+  padding: 0.45rem 0.25rem 0;
+  color: var(--muted-ink);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.preset-clear:hover {
+  color: var(--ink);
+}
+
+.presets-pop-enter-active,
+.presets-pop-leave-active {
+  transition:
+    opacity 130ms ease,
+    transform 130ms ease;
+}
+
+.presets-pop-enter-from,
+.presets-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 .sound-toggle {
   z-index: 2;
+  grid-row: 1;
+  grid-column: 1;
   display: inline-flex;
   min-height: 34px;
   align-items: center;
   justify-self: end;
+  animation: control-arrive 520ms 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   gap: 0.4rem;
   border: 1px solid var(--ink);
   background: var(--paper);
@@ -363,50 +645,6 @@ body,
 .sound-toggle:focus-visible {
   outline: 3px solid var(--orange);
   outline-offset: 3px;
-}
-
-.secret-stamp {
-  position: fixed;
-  z-index: 1001;
-  right: 1.25rem;
-  bottom: 1.25rem;
-  display: flex;
-  min-height: 46px;
-  align-items: center;
-  gap: 0.6rem;
-  border: 2px solid var(--ink);
-  background: var(--paper);
-  padding: 0.45rem 0.8rem;
-  color: var(--ink);
-  box-shadow: 4px 4px 0 var(--orange);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  pointer-events: none;
-}
-
-.secret-stamp-mark {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border: 1px solid var(--ink);
-  background: var(--orange);
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.secret-stamp-enter-active,
-.secret-stamp-leave-active {
-  transition:
-    opacity 180ms ease,
-    transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-.secret-stamp-enter-from,
-.secret-stamp-leave-to {
-  opacity: 0;
-  transform: translateY(8px) rotate(-3deg);
 }
 
 .click-effect {
@@ -554,39 +792,19 @@ body,
   background: var(--orange);
 }
 
-.background-tile.is-secret {
-  animation: secret-tile-flash 850ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes secret-tile-flash {
-  0% {
-    background: var(--orange);
-    box-shadow: inset 0 0 0 2px var(--ink);
-    transform: scale(0.78);
-  }
-  55% {
-    background: #e7d84d;
-    box-shadow: inset 0 0 0 2px var(--ink);
-    transform: scale(1.08);
-  }
-  100% {
-    background: var(--orange);
-    box-shadow: inset 0 0 0 0 transparent;
-    transform: scale(1);
-  }
-}
-
 .business-card {
   grid-row: 2;
   position: relative;
   z-index: 1;
   display: flex;
-  width: min(1560px, 100%);
-  height: min(960px, calc(100dvh - 4rem));
+  width: min(1680px, 100%);
+  height: min(1010px, calc(100dvh - 3.5rem));
   flex-direction: column;
   border: 1px solid var(--ink);
   background: var(--paper);
   box-shadow: 9px 9px 0 var(--ink);
+  transform-origin: 50% 22%;
+  animation: card-arrive 850ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
 }
 
 .card-header {
@@ -840,6 +1058,50 @@ a.project-row:hover {
   outline-offset: 3px;
 }
 
+.card-content {
+  animation: content-arrive 600ms 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes card-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(38px) scale(0.94) rotateX(5deg);
+    box-shadow: 0 0 0 var(--ink);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.008) rotateX(0);
+    box-shadow: 9px 9px 0 var(--ink);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0);
+    box-shadow: 9px 9px 0 var(--ink);
+  }
+}
+
+@keyframes control-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes content-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .card-page-enter-active,
 .card-page-leave-active {
   transition:
@@ -869,7 +1131,7 @@ a.project-row:hover {
   }
 
   .business-card {
-    height: calc(100dvh - 3.7rem);
+    height: calc(100dvh - 3.6rem);
     box-shadow: 5px 5px 0 var(--ink);
   }
 
@@ -892,13 +1154,19 @@ a.project-row:hover {
   }
 }
 
+@media (max-width: 360px) {
+  .preset-popover {
+    width: calc(100vw - 1rem);
+  }
+}
+
 @media (max-width: 540px) {
   .card-stage {
     padding: 0.25rem 0.5rem 0.5rem;
   }
 
   .business-card {
-    height: calc(100dvh - 3.5rem);
+    height: calc(100dvh - 3.4rem);
     box-shadow: 3px 3px 0 var(--ink);
   }
 
@@ -1015,12 +1283,21 @@ a.project-row:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .business-card,
+  .preset-control,
+  .sound-toggle,
+  .card-content {
+    animation: none;
+  }
+
   .click-effect {
     display: none;
   }
 
-  .background-tile.is-secret {
-    animation: none;
+  .preset-toggle,
+  .presets-pop-enter-active,
+  .presets-pop-leave-active {
+    transition: none;
   }
 
   .spray-particles {

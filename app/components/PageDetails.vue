@@ -20,16 +20,14 @@ defineProps<{
           ><strong>{{ title }}</strong
           ><small>{{ detail }}</small></span
         >
-        <a
+        <NuxtLink
           v-if="href"
           class="preview-arrow-link"
-          :href="href"
-          target="_blank"
-          rel="noreferrer"
-          :aria-label="`Open ${title}`"
+          :to="href"
+          :aria-label="`View ${title} project details`"
         >
           <ArrowUpRight class="preview-arrow" />
-        </a>
+        </NuxtLink>
       </figcaption>
     </figure>
 
